@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
+#include <string.h>
+#include <stdlib.h>
 
 // Structs
 struct Book
@@ -58,22 +60,29 @@ void createFile(char *fileName)
 
 int idGenerator(FILE *file);
 
-FILE* getFileInfos(char *fileName)
+FILE* seeAllBooks(char *fileName)
 {
     FILE *file = fopen(fileName, "r");
-    int listSize = (idGenerator(file) - 1);
+    if (file == NULL)
+    {
+        printf("File not found\n");
+        return NULL;
+    }
 
-    int list[listSize];
-    
+    int listSize = idGenerator(file) - 1;
+
     char line[255];
+    fgets(line, sizeof(line), file);
 
+    printf("Books list:\n");
     for (int i = 0; i < listSize; i++)
     {
-        fgets(line, 255, file);
+        fgets(line, sizeof(line), file);
         printf("%s", line);
     }
 
-    return file;
+    rewind(file);
+    fclose(file);
 }
 
 void fileChecker(FILE *file, char fileName[])
@@ -86,12 +95,15 @@ void fileChecker(FILE *file, char fileName[])
 
 int idGenerator(FILE *file)
 {
-    int id = 0;
+    int id = 1;
     char line[255];
-    while (fgets(line, 255, file))
+    rewind(file);
+    
+    while (fgets(line, sizeof(line), file))
     {
         id++;
     }
+    rewind(file);
     return id;
 }
 
@@ -115,8 +127,45 @@ void registerBook()
     fprintf(updateFile, "%d,%s,%s,%s,%d,%d\n", book.id, book.title, book.author, book.subject, book.stock, book.available);
 };
 
+void searchBook()
+{
+    FILE *file = fopen("books.csv", "r");
+    if (file == NULL)
+    {
+        printf("File not found\n");
+        return;
+    }
 
+    int id;
+    printf("Enter book id: ");
+    scanf("%d", &id);
 
+    char line[255];
+    char copy[255];
+    int found = 0;
+
+    fgets(line, sizeof(line), file);
+
+    while (fgets(line, sizeof(line), file))
+    {
+        strcpy(copy, line);
+        line[strcspn(line, "\n")] = 0;
+
+        char *token = strtok(line, ",");
+        int currentId = atoi(token);
+
+        if (currentId == id) {
+            printf("Book found: %s\n", copy);
+            found = 1;
+            return;
+        }
+
+    }
+    if (!found) {
+        printf("Book not found with id %d\n", id);
+    }
+    fclose(file);
+}
 
 
 int main()
@@ -135,10 +184,13 @@ int main()
 
     if (choice == 1)
     {
-        FILE* infos = getFileInfos(booksFileName);
+        FILE* infos = seeAllBooks(booksFileName);
     } else if (choice == 2)
     {
         registerBook();
+    } else if (choice == 3)
+    {
+        searchBook();
     }
 
     return 0;
